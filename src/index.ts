@@ -20,7 +20,8 @@
  * - SLACK_BOT_TOKEN + SLACK_APP_TOKEN: Slack tokens
  */
 
-import { Hono } from 'hono';
+import { Hono, type Context, type Next } from 'hono';
+
 import { getSandbox, Sandbox, type SandboxOptions } from '@cloudflare/sandbox';
 
 import type { AppEnv, MoltbotEnv } from './types';
@@ -187,25 +188,31 @@ app.use('*', async (c, next) => {
   return next();
 });
 
+// =============================================================================
+// PROTECTED ROUTES: Cloudflare Access authentication required
+// =============================================================================
+
 // Middleware: Cloudflare Access authentication for protected routes
-app.use('*', async (c, next) => {
-  // Determine response type based on Accept header
+// Apply only to /_admin, /api, and /debug routes (not the catch-all proxy)
+const accessMiddleware = async (c: Context<AppEnv>, next: Next) => {
   const acceptsHtml = c.req.header('Accept')?.includes('text/html');
   const middleware = createAccessMiddleware({
     type: acceptsHtml ? 'html' : 'json',
     redirectOnMissing: acceptsHtml
   });
-
   return middleware(c, next);
-});
+};
 
 // Mount API routes (protected by Cloudflare Access)
+app.use('/api/*', accessMiddleware);
 app.route('/api', api);
 
 // Mount Admin UI routes (protected by Cloudflare Access)
+app.use('/_admin/*', accessMiddleware);
 app.route('/_admin', adminUi);
 
 // Mount debug routes (protected by Cloudflare Access, only when DEBUG_ROUTES is enabled)
+app.use('/debug/*', accessMiddleware);
 app.use('/debug/*', async (c, next) => {
   if (c.env.DEBUG_ROUTES !== 'true') {
     return c.json({ error: 'Debug routes are disabled' }, 404);
@@ -213,6 +220,11 @@ app.use('/debug/*', async (c, next) => {
   return next();
 });
 app.route('/debug', debug);
+
+// =============================================================================
+// CATCH-ALL: Proxy to Moltbot gateway
+// =============================================================================
+
 
 // =============================================================================
 // CATCH-ALL: Proxy to Moltbot gateway
