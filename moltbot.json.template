@@ -1,7 +1,25 @@
 {
   "agents": {
     "defaults": {
-      "workspace": "/root/clawd"
+      "workspace": "/root/clawd",
+      "model": {
+        "primary": "anthropic/claude-3-5-haiku-20241022",
+        "fallbacks": [
+          "anthropic/claude-3-5-sonnet-20241022",
+          "anthropic/claude-opus-4-20250514"
+        ]
+      },
+      "models": {
+        "anthropic/claude-3-5-haiku-20241022": {
+          "alias": "Claude Haiku 3.5"
+        },
+        "anthropic/claude-3-5-sonnet-20241022": {
+          "alias": "Claude Sonnet 3.5"
+        },
+        "anthropic/claude-opus-4-20250514": {
+          "alias": "Claude Opus 4"
+        }
+      }
     }
   },
   "gateway": {
@@ -9,3 +27,4 @@
     "mode": "local"
   }
 }
+
