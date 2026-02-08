@@ -280,7 +280,7 @@ app.all('*', async (c) => {
     }, 503);
   }
 
-  // Proxy to Moltbot with WebSocket message interception
+   // Proxy to Moltbot with WebSocket message interception
   if (isWebSocketRequest) {
     const debugLogs = c.env.DEBUG_ROUTES === 'true';
     const redactedSearch = redactSensitiveParams(url);
@@ -290,8 +290,18 @@ app.all('*', async (c) => {
       console.log('[WS] URL:', url.pathname + redactedSearch);
     }
 
+    // Add MOLTBOT_GATEWAY_TOKEN to the request URL if it's not already present
+    const requestUrl = new URL(request.url);
+    if (!requestUrl.searchParams.has('token') && c.env.MOLTBOT_GATEWAY_TOKEN) {
+      requestUrl.searchParams.set('token', c.env.MOLTBOT_GATEWAY_TOKEN);
+      console.log('[WS] Added MOLTBOT_GATEWAY_TOKEN to WebSocket request');
+    }
+
+    // Create a new request with the modified URL
+    const modifiedRequest = new Request(requestUrl.toString(), request);
+
     // Get WebSocket connection to the container
-    const containerResponse = await sandbox.wsConnect(request, MOLTBOT_PORT);
+    const containerResponse = await sandbox.wsConnect(modifiedRequest, MOLTBOT_PORT);
     console.log('[WS] wsConnect response status:', containerResponse.status);
 
     // Get the container-side WebSocket
